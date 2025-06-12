@@ -1,0 +1,19 @@
+TestValue:
+  structure:
+    - one
+    - two
+  straightList: [three, four, five]
+  mixedList:
+    - one
+    - 2
+    - object: here
+
+  object:
+    subObject:
+      value: thing
+      otherVal: [1, 3]
+      sub:
+        thing: boom
+        wow: [1, 2]
+
+Stereo: here
