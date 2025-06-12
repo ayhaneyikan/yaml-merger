@@ -17,6 +17,13 @@ TestValue:
         wow: [1, 2]
 
 Merged:
-  mixedList:
-    $ref: /TestValue/object
+  $replace: /TestValue/object
 
+MergedGoal:
+  object:
+    subObject:
+      value: thing
+      otherVal: [1, 3]
+      sub:
+        thing: boom
+        wow: [1, 2]
