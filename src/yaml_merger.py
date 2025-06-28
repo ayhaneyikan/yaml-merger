@@ -18,6 +18,7 @@ $replace: ./other/file#/structure/in/thatFile
 ```
 """
 
+from copy import deepcopy
 import yaml
 
 # local module imports
@@ -34,48 +35,57 @@ def _read_yaml(file_path: str):
         return yaml_content
 
 
-def _rec_scan_list(content_list: list):
-    """
-    Scans the given list recursively for references
-    Returns: list of detected references in the YAMl file
-    """
-    for item in content_list:
-        # nested list, recursively handle
-        if type(item) == list:
-            _rec_scan_list(item)
-
-        # nested dictionary, recursively handle
-        elif type(item) == dict:
-            _rec_scan_dict(item)
-
-        # value, leaf node
-        else:
-            print(f'PLEB ITEM: {item}')
 
 
-def _rec_scan_dict(content_dict: dict):
+def _rec_scan_dict(content_dict: dict, parent_path: list):
     """
     Scans the given YAML dictionary recursively for references
+    Takes
+     - content_dict | YAML dictionary to be scanned
+     - parent_path  | path used to reach the current structure
     Returns: list of detected references in the YAML file
     """
+    def _rec_scan_list(content_list: list, parent_path: list):
+        """
+        Iterates over the given list and delegates reference scanning
+        - References must be key: value, i.e., they cannot exist in a list directly
+        Takes
+        - content_list | YAML list to be scanned
+        - parent_path  | path used to reach the current structure
+        """
+        refs = []
+        for item in content_list:
+            if type(item) == list:
+                refs.extend(_rec_scan_list(item, parent_path + [item]))  # recursively handle list
+            elif type(item) == dict:
+                # don't extend parent_path, handled in the dict func
+                refs.extend(_rec_scan_dict(item, parent_path))  # recursively handle dict
+            else:
+                print(f'PLEB LIST ITEM: {item}')
+        return refs
+
+    refs = []
     # iterate over keys at the top-level of the given YAML
     for key in content_dict.keys():
         # check if key is a reference
+        # TODO evaluate if regex is beneficial here
         if key.startswith(constants.REFERENCE_KEY):
-            # TODO validate path string? Or separate function
-            print(content_dict[key])
+            # add ref info to the return list
+            refs.append((key, content_dict[key], parent_path))
 
         # key is a dictionary, recursively handle
         elif type(content_dict[key]) == dict:
-            _rec_scan_dict(content_dict[key])
+            refs.extend(_rec_scan_dict(content_dict[key], parent_path + [key]))
 
         # key is a list, recursively handle
         elif type(content_dict[key]) == list:
-            _rec_scan_list(content_dict[key])
+            refs.extend(_rec_scan_list(content_dict[key], parent_path + [key]))
 
         # key is a value, leaf node
         else:
             print(f'STRAIGHT UP | {key}: {content_dict[key]}')
+
+    return refs
 
 
 
@@ -83,20 +93,45 @@ def parse_yaml_refs(yaml_content: dict):
     """
     Parses a list of references made within the given YAML content
     """
-    _rec_scan_dict(yaml_content)
+    return _rec_scan_dict(yaml_content, [])
 
+
+def validate_refs():
+    # TODO impl
+    pass
+
+
+def make_replacements(yaml_content: dict, ref_list: list):
+    """
+    Replaces references in given YAML content with evaluated structures
+    Returns new copy of final merged YAML content
+    """
+    # create deep copy to make modifications to
+    merged = deepcopy(yaml_content)
+
+    for ref in ref_list:
+        print(ref)
+        pass
+
+
+    return merged
 
 
 
 def _main():
-    # content = read_yaml('./tests/mergable.yaml')
-    content = _read_yaml('./tests/simple.yaml')
+
+    content = _read_yaml('./tests/mergable.yaml')
+    # content = _read_yaml('./tests/simple.yaml')
 
     refs = parse_yaml_refs(content)
 
-    print(f'LIST: {refs}')
+    print(f'REF LIST: {refs}')
 
-    # make_replacements(content, refs)
+    if not refs:
+        print('YAML contains no references\n')
+        return 0
+
+    merged = make_replacements(content, refs)
 
 
 
