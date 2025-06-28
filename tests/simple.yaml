@@ -1,0 +1,11 @@
+SingleField:
+  - one
+  - two:
+      subfield: test
+      other: test2
+    three: valid
+  - three
+  - None
+  - fame: bat
+    carp: snake
+  - seven
