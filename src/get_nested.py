@@ -30,7 +30,7 @@ def get_nested(obj: any, path_str: str, split_str: str = '.'):
     Takes a path string of the form a.b.c where nested key values are separated by a period by default
     The separation value can be passed in as a split string and allows passing other paths like a/b/c
     """
-    nested_keys = path_str.split(split_str)
+    nested_keys = path_str.strip().strip(split_str).split(split_str)
     result = obj
     # iterate over each nested key and extract the value
     for key in nested_keys:
