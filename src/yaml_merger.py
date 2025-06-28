@@ -20,9 +20,10 @@ $replace: ./other/file#/structure/in/thatFile
 
 from copy import deepcopy
 import yaml
+import os
 
 # local module imports
-import get_nested
+from get_nested import get_nested
 import constants
 
 
@@ -33,7 +34,6 @@ def _read_yaml(file_path: str):
     with open(file_path, 'r') as file:
         yaml_content = yaml.safe_load(file)
         return yaml_content
-
 
 
 
@@ -60,8 +60,8 @@ def _rec_scan_dict(content_dict: dict, parent_path: list):
             elif type(item) == dict:
                 # don't extend parent_path, handled in the dict func
                 refs.extend(_rec_scan_dict(item, parent_path))  # recursively handle dict
-            else:
-                print(f'PLEB LIST ITEM: {item}')
+            # else:
+            #     print(f'PLEB LIST ITEM: {item}')
         return refs
 
     refs = []
@@ -81,9 +81,9 @@ def _rec_scan_dict(content_dict: dict, parent_path: list):
         elif type(content_dict[key]) == list:
             refs.extend(_rec_scan_list(content_dict[key], parent_path + [key]))
 
-        # key is a value, leaf node
-        else:
-            print(f'STRAIGHT UP | {key}: {content_dict[key]}')
+        # # key is a value, leaf node
+        # else:
+        #     print(f'STRAIGHT UP | {key}: {content_dict[key]}')
 
     return refs
 
@@ -104,15 +104,32 @@ def validate_refs():
 def make_replacements(yaml_content: dict, ref_list: list):
     """
     Replaces references in given YAML content with evaluated structures
+    Takes
+     - yaml_content | YAML dictionary to make reference replacements within
+     - ref_list     | List of reference information of the form: (<ref key>, <ref path>, <path to ref>)
     Returns new copy of final merged YAML content
     """
     # create deep copy to make modifications to
     merged = deepcopy(yaml_content)
 
-    for ref in ref_list:
-        print(ref)
-        pass
+    for key, value, loc in ref_list:
+        # TODO parse replacement key
+        # TODO parse file path
+        # parse replacement value
+        # attempt to resolve value
+        try:
+            replacement_val = get_nested(yaml_content, value, '/')
+        except LookupError as e:
+            print('\nUNABLE TO MAKE REFERENCE SUBSTITUTION')
+            print(f' {key}: {value} DID NOT SUCCESSFULLY RESOLVE')
+            print(f' RESOLVE ERROR: {e}\n')
+            # TODO evaluate if early exit is appropriate, or if ref should just be left unresolved
 
+        # substitute ref for retreived value
+        ref = merged
+        for entry in loc[:-1]:
+            ref = ref[entry]
+        ref[loc[-1]] = replacement_val
 
     return merged
 
@@ -120,18 +137,29 @@ def make_replacements(yaml_content: dict, ref_list: list):
 
 def _main():
 
+    # TODO take commandline inputfile path
     content = _read_yaml('./tests/mergable.yaml')
     # content = _read_yaml('./tests/simple.yaml')
 
     refs = parse_yaml_refs(content)
 
-    print(f'REF LIST: {refs}')
+    # print(f'REF LIST: {refs}')
 
     if not refs:
         print('YAML contains no references\n')
         return 0
 
     merged = make_replacements(content, refs)
+
+    print()
+    print(merged)
+    print()
+
+    # TODO take commandline outfile path
+    # determine project dir and write file to output directory
+    project_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    with open(os.path.join(project_dir, 'output/merged.yaml'), 'w') as f:
+        yaml.dump(merged, f)
 
 
 
